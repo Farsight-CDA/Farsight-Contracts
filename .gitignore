@@ -1,0 +1,4 @@
+*.abi
+*.bin
+/src/mainchain/abi/types/web3-v1-contracts
+/.vs
