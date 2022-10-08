@@ -2,16 +2,9 @@
 
 pragma solidity >=0.8.17;
 
-interface IRegistrar {
-    event NameRegistered(uint256 indexed name, address indexed owner, uint256 expiration);
-    event NameRenewed(uint256 indexed name, uint256 expiration);
+import "../shared/IRegistrar.sol";
 
-    // Returns the expiration timestamp of the specified name.
-    function nameExpires(uint256 name) external view returns (uint256);
-
-    // Returns true if the specified name is available for registration.
-    function available(uint256 name) external view returns (bool);
-
+interface IMainRegistar is IRegistrar {
     /** 
      * @dev Registers a name for a given owner with a given duration. 
      *      Optionally allows for settings the new name as primary name for the address.

@@ -2,10 +2,14 @@
 
 pragma solidity >=0.8.17;
 
-import "./ERC721/ERC721.sol";
-import "./utils/Ownable.sol";
-import "./utils/Controllable.sol";
-import "./IRegistrar.sol";
+import "../lib/ERC721/ERC721.sol";
+import "../lib/utils/Ownable.sol";
+import "../lib/utils/Controllable.sol";
+import "../shared/IRegistrar.sol";
+
+/**********\
+|* Errors *|
+\**********/
 
 error NameExpired();
 error NameUnavailable();
@@ -20,10 +24,9 @@ contract Registrar is ERC721, Ownable, Controllable, IRegistrar {
     constructor() ERC721("Farsight Names", "FAR") {
     }
 
-    // Add / Remove addresses that are allowed to call `onlyController` methods.
-    function setController(address controller, bool allowed) external onlyOwner {
-        super._setController(controller, allowed);
-    }
+    /***********\
+    |* Getters *|
+    \***********/
 
     // Returns true if the specified name is available for registration.
     function available(uint256 name) public view override returns (bool) {
@@ -46,6 +49,16 @@ contract Registrar is ERC721, Ownable, Controllable, IRegistrar {
         if (_expiries[tokenId] <= block.timestamp) { revert NameExpired(); }
         return super.ownerOf(tokenId);
     }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IRegistrar).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
+    /************************\
+    |* Controller Functions *|
+    \************************/
 
     function register(uint256 name, address owner, uint256 duration, bool setPrimary) external override onlyController returns (uint256) {
         if (!available(name)) { revert NameUnavailable(); }
@@ -83,14 +96,21 @@ contract Registrar is ERC721, Ownable, Controllable, IRegistrar {
         return _expiries[name];
     }
 
+    /*******************\
+    |* Admin Functions *|
+    \*******************/
+
+    // Add / Remove addresses that are allowed to call `onlyController` methods.
+    function setController(address controller, bool allowed) external onlyOwner {
+        super._setController(controller, allowed);
+    }
+
+    /**********************\
+    |* Internal Functions *|
+    \**********************/
+
     // Returns the larger of two numbers
     function _max(uint256 a, uint256 b) internal pure returns (uint256) {
         return a >= b ? a : b;
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return
-            interfaceId == type(IRegistrar).interfaceId ||
-            super.supportsInterface(interfaceId);
     }
 }

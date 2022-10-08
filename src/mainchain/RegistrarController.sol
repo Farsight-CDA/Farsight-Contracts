@@ -10,8 +10,8 @@ error DurationTooShort();
 
 error NameNotAvailable();
 
-import "./ERC20/IERC20.sol";
-import "./utils/Ownable.sol";
+import "../lib/ERC20/IERC20.sol";
+import "../lib/utils/Ownable.sol";
 import "./IRegistrarController.sol";
 import "./IPaymentProvider.sol";
 import "./IRegistrar.sol";
