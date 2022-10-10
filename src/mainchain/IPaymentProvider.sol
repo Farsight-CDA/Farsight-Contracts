@@ -1,9 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import "../lib/ERC20/IERC20.sol";
-
-interface IPaymentProvider is IERC20 {
+interface IPaymentProvider {
     /**
      * @dev Collects the payment for a name registration / renewal
      * @param name The name being registered or renewed.
