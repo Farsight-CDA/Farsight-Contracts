@@ -14,7 +14,7 @@ import "../lib/ERC20/IERC20.sol";
 import "../lib/utils/Ownable.sol";
 import "./IRegistrarController.sol";
 import "./IPaymentProvider.sol";
-import "./IRegistrar.sol";
+import "../shared/IRegistrar.sol";
 
 contract RegistrarController is IRegistrarController, Ownable {
     event PaymentProviderChanged(IPaymentProvider previous, IPaymentProvider current);

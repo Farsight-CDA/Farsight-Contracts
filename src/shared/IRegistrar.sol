@@ -6,7 +6,7 @@ interface IRegistrar {
     event NameRegistered(uint256 indexed name, address indexed owner, uint256 expiration);
     event NameRenewed(uint256 indexed name, uint256 expiration);
 
-    function ownerOf(uint256 tokenId) public view override returns (address);
+    function ownerOf(uint256 tokenId) external view returns (address);
 
     // Returns the expiration timestamp of the specified name.
     function nameExpires(uint256 name) external view returns (uint256);
