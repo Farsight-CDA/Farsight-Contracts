@@ -3,6 +3,9 @@
 pragma solidity >=0.8.17;
 
 interface IRegistrar {
+    /**********\
+    |* Events *|
+    \**********/
     event NameRegistered(uint256 indexed name, address indexed owner, uint256 expiration);
     event NameRenewed(uint256 indexed name, uint256 expiration);
 

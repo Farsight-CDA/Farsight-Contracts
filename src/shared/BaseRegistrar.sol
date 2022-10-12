@@ -15,7 +15,7 @@ error NameExpired();
 error NameUnavailable();
 error NameRenewingExpired();
 
-contract Registrar is ERC721, Ownable, Controllable, IRegistrar {
+contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistar {
     uint256 public constant GRACE_PERIOD = 30 days;
 
     mapping(address => uint256) _reverseRegistrar; //Only map to "primary" name
