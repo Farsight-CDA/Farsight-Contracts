@@ -1,13 +1,13 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import "../lib/ERC20/IERC20.sol";
+import "../../lib/ERC20/IERC20.sol";
 import "./IPaymentProvider.sol";
 
 interface IERC20PaymentProvider is IPaymentProvider {
-    function getTokenAddress() external returns (address);
+    function getTokenAddress() external view returns (address);
 
-    function getPrice(uint256 name, uint256 expires, uint256 duration) external returns (uint256);
+    function getPrice(uint256 name, uint256 expires, uint256 duration) external view returns (uint256);
 
     /**
      * @dev Collects the payment for a name registration / renewal.

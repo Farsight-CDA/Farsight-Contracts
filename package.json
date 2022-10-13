@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "truffle": "^5.6.1",
+    "truffle-contract-size": "^2.0.1"
+  }
+}

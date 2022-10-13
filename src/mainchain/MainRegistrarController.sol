@@ -2,12 +2,12 @@
 pragma solidity >=0.8.17;
 
 import "../lib/utils/Ownable.sol";
-import "./IRegistrarController.sol";
+import "./IMainRegistrarController.sol";
 import "./PaymentProviders/IPaymentProvider.sol";
-import "../shared/IRegistrar.sol";
+import "./IMainRegistrar.sol";
 import "../lib/Axelar/IAxelarGateway.sol";
 
-contract RegistrarController is IRegistrarController, Ownable {
+contract MainRegistrarController is IMainRegistrarController, Ownable {
     /**********\
     |* Errors *|
     \**********/
@@ -27,6 +27,7 @@ contract RegistrarController is IRegistrarController, Ownable {
     \**********/
     event PaymentProviderChanged(IPaymentProvider previous, IPaymentProvider current);
     event MinRegisterDurationChanged(uint256 previous, uint256 current);
+    event MinRenewDurationChanged(uint256 previous, uint256 current);
 
     event ChainAdded(uint256 indexed chainId, string indexed targetPropagatorAddress);
     event ChainRemoved(uint256 indexed chainId);
@@ -44,23 +45,23 @@ contract RegistrarController is IRegistrarController, Ownable {
     uint256 public immutable minCommitmentAge;
     uint256 public immutable maxCommitmentAge;
 
-    mapping(bytes32 => uint256) _commitments;    
+    mapping(bytes32 => uint256) private commitments;    
 
-    IRegistrar immutable registrar;
+    IMainRegistrar public immutable registrar;
 
-    IPaymentProvider paymentProvider;
+    IPaymentProvider public paymentProvider;
 
-    uint256 minRegisterDuration;
-    uint256 minRenewDuration;
+    uint256 public minRegisterDuration;
+    uint256 public minRenewDuration;
 
-    IAxelarGateway immutable axelarGateway;
+    IAxelarGateway private immutable axelarGateway;
 
-    uint256[] supportedChains;
-    mapping(uint256 => ChainDefinition) chainDefinitions;
+    uint256[] public supportedChains;
+    mapping(uint256 => ChainDefinition) private chainDefinitions;
 
     constructor(uint256 _minCommitmentAge,
                 uint256 _maxCommitmentAge, 
-                IRegistrar _registrar,
+                IMainRegistrar _registrar,
                 IPaymentProvider _paymentProvider,
                 uint256 _minRegisterDuration,
                 uint256 _minRenewDuration,
@@ -94,12 +95,12 @@ contract RegistrarController is IRegistrarController, Ownable {
     \***********/
 
     function commit(bytes32 commitment) external override {
-        if (_commitments[commitment] + maxCommitmentAge >= block.timestamp) { revert UnexpiredCommitmentExists(); }
+        if (commitments[commitment] + maxCommitmentAge >= block.timestamp) { revert UnexpiredCommitmentExists(); }
 
-        _commitments[commitment] = block.timestamp;
+        commitments[commitment] = block.timestamp;
     } 
     
-    function register(uint256 name, address owner, uint256 duration, bytes32 secret, bool setPrimary) external returns (uint256) {
+    function register(uint256 name, address owner, uint256 duration, bytes32 secret) external returns (uint256) {
         if (duration < minRegisterDuration) { revert RegisterDurationTooShort(minRegisterDuration, duration); }
 
         //Payment provider should revert if payment unsuccessful
@@ -107,7 +108,7 @@ contract RegistrarController is IRegistrarController, Ownable {
 
         _consumeCommitment(name, owner, duration, secret);
 
-        return registrar.register(name, owner, duration, setPrimary);
+        return registrar.register(name, owner, duration);
     }
 
     function renew(uint256 name, uint256 duration) external returns (uint256) {
@@ -116,6 +117,48 @@ contract RegistrarController is IRegistrarController, Ownable {
         paymentProvider.collectPayment(msg.sender, name, _max(block.timestamp, registrar.nameExpires(name)), duration);
 
         return registrar.renew(name, duration);
+    }
+
+    /***********************\
+    |* Cross Chain Setters *|
+    \***********************/
+
+    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner) external {
+        if (!chainDefinitions[chainId].isValid) { revert UnsupportedOrInvalidChainId(chainId); }
+        if (registrar.ownerOf(name) != msg.sender) {
+            revert MustBeNameOwner(registrar.ownerOf(name), msg.sender);
+        }
+
+        axelarGateway.callContract(
+            chainDefinitions[chainId].name, 
+            chainDefinitions[chainId].targetAddress, 
+            abi.encode(name, owner, registrar.nameExpires(name), registrar.nameVersion(name))
+        );
+    }
+
+    /*******************\
+    |* Admin Functions *|
+    \*******************/
+
+    function setPaymentProvider(IPaymentProvider _paymentProvider) external onlyOwner {
+        require(paymentProvider != _paymentProvider);
+
+        emit PaymentProviderChanged(paymentProvider, _paymentProvider);
+        paymentProvider = _paymentProvider;
+    }
+
+    function setMinRegisterDuration(uint256 _minRegisterDuration) external onlyOwner {
+        require(minRegisterDuration != _minRegisterDuration);
+
+        emit MinRegisterDurationChanged(minRegisterDuration, _minRegisterDuration);
+        minRegisterDuration = _minRegisterDuration;
+    }
+
+    function setMinRenewDuration(uint256 _minRenewDuration) external onlyOwner {
+        require(minRenewDuration != _minRenewDuration);
+
+        emit MinRenewDurationChanged(minRenewDuration, _minRenewDuration);
+        minRenewDuration = _minRenewDuration;
     }
 
     function addChain(uint256 chainId, string calldata targetPropagatorAddress, string calldata chainName) external onlyOwner {
@@ -141,56 +184,6 @@ contract RegistrarController is IRegistrarController, Ownable {
         emit ChainRemoved(chainId);
     }
 
-    /***********************\
-    |* Cross Chain Setters *|
-    \***********************/
-
-    function broadcastNameUpdate(uint256 name, string calldata owner, uint256 expiry) external {
-        if (registrar.ownerOf(name) != msg.sender) {
-            revert MustBeNameOwner(registrar.ownerOf(name), msg.sender);
-        }
-
-        for(uint256 i = 0; i < supportedChains.length; i++) { //Unbounded loop: Maximum amount of chainIds very small
-            uint256 chainId = supportedChains[i];
-            axelarGateway.callContract(
-                chainDefinitions[chainId].name, 
-                chainDefinitions[chainId].targetAddress, 
-                abi.encodePacked(name, owner, expiry)
-            );
-        }
-    }
-
-    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner, uint256 expiry) external {
-        if (!chainDefinitions[chainId].isValid) { revert UnsupportedOrInvalidChainId(chainId); }
-        if (registrar.ownerOf(name) != msg.sender) {
-            revert MustBeNameOwner(registrar.ownerOf(name), msg.sender);
-        }
-
-        axelarGateway.callContract(
-            chainDefinitions[chainId].name, 
-            chainDefinitions[chainId].targetAddress, 
-            abi.encodePacked(name, owner, expiry)
-        );
-    }
-
-    /*******************\
-    |* Admin Functions *|
-    \*******************/
-
-    function setPaymentProvider(IPaymentProvider _paymentProvider) external onlyOwner {
-        require(paymentProvider != _paymentProvider);
-
-        emit PaymentProviderChanged(paymentProvider, _paymentProvider);
-        paymentProvider = _paymentProvider;
-    }
-
-    function setMinRegisterDuration(uint256 _minRegisterDuration) external onlyOwner {
-        require(minRegisterDuration != _minRegisterDuration);
-
-        emit MinRegisterDurationChanged(minRegisterDuration, _minRegisterDuration);
-        minRegisterDuration = _minRegisterDuration;
-    }
-
     /**********************\
     |* Internal Functions *|
     \**********************/
@@ -203,9 +196,9 @@ contract RegistrarController is IRegistrarController, Ownable {
     function _consumeCommitment(uint256 name, address owner, uint256 duration, bytes32 secret) internal {
         bytes32 commitment = keccak256(abi.encodePacked(name, owner, duration, secret));
 
-        if (_commitments[commitment] + minCommitmentAge > block.timestamp) { revert CommitmentTooNew(); }
-        if (_commitments[commitment] + maxCommitmentAge <= block.timestamp) { revert CommitmentTooOld(); }
+        if (commitments[commitment] + minCommitmentAge > block.timestamp) { revert CommitmentTooNew(); }
+        if (commitments[commitment] + maxCommitmentAge <= block.timestamp) { revert CommitmentTooOld(); }
 
-        delete (_commitments[commitment]);
+        delete (commitments[commitment]);
     }
 }

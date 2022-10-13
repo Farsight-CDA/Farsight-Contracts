@@ -5,19 +5,22 @@ import "../../lib/ERC20/IERC20.sol";
 import "./IERC20PaymentProvider.sol";
 
 contract FixedERC20PaymentProvider is IERC20PaymentProvider {
-    IERC20 _paymentToken private immutable;
-    uint256 _pricePerSecond private immutable; 
+    IERC20 private immutable paymentToken;
+    uint256 private immutable pricePerSecond; 
 
-    constructor(IERC20 paymentToken, uint256 pricePerSecond) {
-        _paymentToken = paymentToken;
-        _pricePerSecond = pricePerSecond;
+    constructor(
+            IERC20 _paymentToken, 
+            uint256 _pricePerSecond) {
+        paymentToken = _paymentToken;
+        pricePerSecond = _pricePerSecond;
     }
 
-    function getTokenAddress() external returns (address) {
-        return _paymentToken;
+    function getTokenAddress() external view returns (address) {
+        return address(paymentToken);
     }
 
-    function getPrice(uint256 name, uint256 expires, uint256 duration) public returns (uint256) {
+    function getPrice(uint256 name, uint256 expires, uint256 duration) public view returns (uint256) {
+        //Overflow protection by default (solidity >= 0.8)
         return pricePerSecond * duration;
     }
 
@@ -29,6 +32,6 @@ contract FixedERC20PaymentProvider is IERC20PaymentProvider {
      * @param duration How long the name is being registered or extended for, in seconds.
      */
     function collectPayment(address buyer, uint256 name, uint256 expires, uint256 duration) external {
-        _paymentToken.transferFrom(buyer, address(this), getPrice(name, expires, duration));
+        paymentToken.transferFrom(buyer, address(this), getPrice(name, expires, duration));
     }
 }

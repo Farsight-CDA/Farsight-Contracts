@@ -3,49 +3,53 @@
 pragma solidity >=0.8.17;
 
 import "./IRegistrar.sol";
+import "./IRegistry.sol";
 
-error Unauthorized(indexed uint256 name, indexed address owner);
+contract BaseRegistry is IRegistry {
+    error Unauthorized(uint256 name, address owner);
+    event RecordValueSet(uint256 indexed name, string indexed recordName, bytes[] recordValue);
+    event RecordValueRemoved(uint256 indexed name, string indexed recordName);
 
-event RecordValueSet(indexed uint256 name, indexed string recordName, bytes[] recordValue);
-event RecordValueRemoved(indexed uint256 name, indexed string recordName);
+    struct RecordValue {
+        uint256 addedAt;
+        bytes[] data;
+    }
 
-struct RecordValue {
-    uint256 addedAt;
-    bytes[] data;
-}
+    struct RecordStore {
+        string[] recordNames;
+        mapping(string => RecordValue) recordValues;
+    }
 
-struct RecordStore {
-    string[] recordNames;
-    mapping(string => RecordValue) recordValues;
-}
-
-contract BaseRegistry {
     IRegistrar immutable registrar;
 
-    mapping(uint256 => mapping(string => RecordValue)) records;
+    mapping(uint256 => RecordStore) records;
 
-    constructor (IRegistar _registrar) public {
+    constructor (IRegistrar _registrar) {
         registrar = _registrar;
     }
 
-    function getRecords(uint256 name) external view returns (string[]) {
+    function getRecords(uint256 name) external view returns (string[] memory) {
         return records[name].recordNames;
     }
 
-    function getValue(uint256 name, string record) external view returns (bytes[]) {
-        return records[name].recordValues[record];
+    function getValue(uint256 name, string calldata record) external view returns (uint256, bytes[] memory) {
+        return (records[name].recordValues[record].addedAt, records[name].recordValues[record].data);
     }
 
-    function setValue(uint256 name, string record, bytes[] value) external {
+    function setValue(uint256 name, string calldata record, bytes[] memory value) external {
         if (registrar.ownerOf(name) != msg.sender) {
             revert Unauthorized(name, registrar.ownerOf(name));
         }
 
-        records[name].recordValues[record] = value;
+        records[name].recordValues[record] = RecordValue({
+            addedAt: block.timestamp,
+            data: value
+        });
+
         emit RecordValueSet(name, record, value);
     }
 
-    function deleteValue(uint256 name, string record) external {
+    function deleteValue(uint256 name, string calldata record) external {
         if (registrar.ownerOf(name) != msg.sender) {
             revert Unauthorized(name, registrar.ownerOf(name));
         }
