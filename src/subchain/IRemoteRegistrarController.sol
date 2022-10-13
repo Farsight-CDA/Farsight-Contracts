@@ -22,7 +22,7 @@ abstract contract IRemoteRegistrarController is IAxelarExecutable {
         if (keccak256(bytes(sourceAddress)) != mainControllerAddressBytes) { revert UnauthorizedSourceAddress(); }
 
         (uint256 name, string memory owner, uint256 expiresAt, uint256 version) = abi.decode(payload, (uint256, string, uint256, uint256));
-        receiveNameUpdate(name, owner, expiresAt, version);
+        _receiveNameUpdate(name, owner, expiresAt, version);
     }
 
     function _receiveNameUpdate(uint256 name, string memory owner, uint256 expiresAt, uint256 version) internal virtual;

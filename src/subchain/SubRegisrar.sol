@@ -7,7 +7,7 @@ import "../lib/utils/Ownable.sol";
 import "../lib/utils/Controllable.sol";
 import "./ISubRegistrar.sol";
 
-contract MainRegistrar is Ownable, Controllable, ISubRegistrar {
+contract SubRegistrar is Ownable, Controllable, ISubRegistrar {
     /**********\
     |* Errors *|
     \**********/
@@ -55,7 +55,7 @@ contract MainRegistrar is Ownable, Controllable, ISubRegistrar {
         return names[name].version;
     }
 
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
         return interfaceId == type(IRegistrar).interfaceId;
     }
 
