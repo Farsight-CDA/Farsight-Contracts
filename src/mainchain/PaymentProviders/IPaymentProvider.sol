@@ -10,7 +10,7 @@ interface IPaymentProvider {
      */
     function collectPayment(
         address buyer,
-        uint256 name,
+        string calldata name,
         uint256 expires,
         uint256 duration
     ) external;

@@ -19,7 +19,7 @@ contract FixedERC20PaymentProvider is IERC20PaymentProvider {
         return address(paymentToken);
     }
 
-    function getPrice(uint256 name, uint256 expires, uint256 duration) public view returns (uint256) {
+    function getPrice(string calldata name, uint256 expires, uint256 duration) public view returns (uint256) {
         //Overflow protection by default (solidity >= 0.8)
         return pricePerSecond * duration;
     }
@@ -31,7 +31,7 @@ contract FixedERC20PaymentProvider is IERC20PaymentProvider {
      * @param expires When the name presently expires (0 if this is a new registration).
      * @param duration How long the name is being registered or extended for, in seconds.
      */
-    function collectPayment(address buyer, uint256 name, uint256 expires, uint256 duration) external {
+    function collectPayment(address buyer, string calldata name, uint256 expires, uint256 duration) external {
         paymentToken.transferFrom(buyer, address(this), getPrice(name, expires, duration));
     }
 }

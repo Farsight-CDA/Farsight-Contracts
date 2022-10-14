@@ -18,6 +18,9 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
     error RenewDurationTooShort(uint256 minimum, uint256 given);
     error MustBeNameOwner(address owner, address given);
 
+    error NameTooShort(uint256 minimum, uint256 given);
+    error NameTooLong(uint256 maxmimum, uint256 given);
+
     error DuplicateChainIdAddition(uint256 chainId);
     error UnsupportedOrInvalidChainId(uint256 chainId);
     error ChainIdNotAtGivenIndex(uint256 chainId, uint256 index);
@@ -28,6 +31,9 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
     event PaymentProviderChanged(IPaymentProvider previous, IPaymentProvider current);
     event MinRegisterDurationChanged(uint256 previous, uint256 current);
     event MinRenewDurationChanged(uint256 previous, uint256 current);
+
+    event MinNameLengthChanged(uint256 previous, uint256 current);
+    event MaxNameLengthChanged(uint256 previous, uint256 current);
 
     event ChainAdded(uint256 indexed chainId, string indexed targetPropagatorAddress);
     event ChainRemoved(uint256 indexed chainId);
@@ -54,6 +60,9 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
     uint256 public minRegisterDuration;
     uint256 public minRenewDuration;
 
+    uint256 public minNameLength;
+    uint256 public maxNameLength;
+
     IAxelarGateway private immutable axelarGateway;
 
     uint256[] public supportedChains;
@@ -65,6 +74,8 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
                 IPaymentProvider _paymentProvider,
                 uint256 _minRegisterDuration,
                 uint256 _minRenewDuration,
+                uint256 _minNameLength,
+                uint256 _maxNameLength,
                 IAxelarGateway _axelarGateway
     ) {
         require(_minCommitmentAge < _maxCommitmentAge);
@@ -78,6 +89,9 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
 
         minRegisterDuration = _minRegisterDuration;
         minRenewDuration = _minRenewDuration;
+
+        minNameLength = _minNameLength;
+        maxNameLength = _maxNameLength;
 
         axelarGateway = _axelarGateway;
     }
@@ -100,21 +114,30 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
         commitments[commitment] = block.timestamp;
     } 
     
-    function register(uint256 name, address owner, uint256 duration, bytes32 secret) external returns (uint256) {
+    function register(string calldata plainName, address owner, uint256 duration, bytes32 secret) external returns (uint256) {
         if (duration < minRegisterDuration) { revert RegisterDurationTooShort(minRegisterDuration, duration); }
 
+        uint256 length = utfStringLength(plainName);
+
+        if (length < minNameLength) { revert NameTooShort(minNameLength, length); }
+        if (length > maxNameLength) { revert NameTooLong(maxNameLength, length); }
+
+        uint256 name = uint256(keccak256(bytes(plainName)));
+
         //Payment provider should revert if payment unsuccessful
-        paymentProvider.collectPayment(msg.sender, name, registrar.nameExpires(name), duration); 
+        paymentProvider.collectPayment(msg.sender, plainName, registrar.nameExpires(name), duration); 
 
         _consumeCommitment(name, owner, duration, secret);
 
         return registrar.register(name, owner, duration);
     }
 
-    function renew(uint256 name, uint256 duration) external returns (uint256) {
+    function renew(string calldata plainName, uint256 duration) external returns (uint256) {
         if (duration < minRenewDuration) { revert RenewDurationTooShort(minRenewDuration, duration); }
 
-        paymentProvider.collectPayment(msg.sender, name, _max(block.timestamp, registrar.nameExpires(name)), duration);
+        uint256 name = uint256(keccak256(bytes(plainName)));
+
+        paymentProvider.collectPayment(msg.sender, plainName, _max(block.timestamp, registrar.nameExpires(name)), duration);
 
         return registrar.renew(name, duration);
     }
@@ -161,6 +184,20 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
         minRenewDuration = _minRenewDuration;
     }
 
+    function setMinNameLength(uint256 _minNameLength) external onlyOwner {
+        require(minNameLength != _minNameLength);
+
+        emit MinNameLengthChanged(minNameLength, _minNameLength);
+        minNameLength = _minNameLength;
+    }
+
+    function setMaxNameLength(uint256 _maxNameLength) external onlyOwner {
+        require(maxNameLength != _maxNameLength);
+
+        emit MinRenewDurationChanged(maxNameLength, _maxNameLength);
+        maxNameLength = _maxNameLength;
+    }
+
     function addChain(uint256 chainId, string calldata targetPropagatorAddress, string calldata chainName) external onlyOwner {
         if(chainDefinitions[chainId].isValid) { revert DuplicateChainIdAddition(chainId); }
 
@@ -200,5 +237,27 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
         if (commitments[commitment] + maxCommitmentAge <= block.timestamp) { revert CommitmentTooOld(); }
 
         delete (commitments[commitment]);
+    }
+
+    function utfStringLength(string memory str) pure internal returns (uint256 length) {
+        uint256 i = 0;
+        bytes memory string_rep = bytes(str);
+
+        while (i < string_rep.length)
+        {
+            if (string_rep[i]>>7==0)
+                i+=1;
+            else if (string_rep[i]>>5==bytes1(uint8(0x6)))
+                i+=2;
+            else if (string_rep[i]>>4==bytes1(uint8(0xE)))
+                i+=3;
+            else if (string_rep[i]>>3==bytes1(uint8(0x1E)))
+                i+=4;
+            else
+                //For safety
+                i+=1;
+
+            length++;
+        }
     }
 }

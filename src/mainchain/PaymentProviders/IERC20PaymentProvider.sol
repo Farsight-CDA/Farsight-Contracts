@@ -7,7 +7,7 @@ import "./IPaymentProvider.sol";
 interface IERC20PaymentProvider is IPaymentProvider {
     function getTokenAddress() external view returns (address);
 
-    function getPrice(uint256 name, uint256 expires, uint256 duration) external view returns (uint256);
+    function getPrice(string calldata name, uint256 expires, uint256 duration) external view returns (uint256);
 
     /**
      * @dev Collects the payment for a name registration / renewal.
@@ -18,7 +18,7 @@ interface IERC20PaymentProvider is IPaymentProvider {
      */
     function collectPayment(
         address buyer,
-        uint256 name,
+        string calldata name,
         uint256 expires,
         uint256 duration
     ) external;
