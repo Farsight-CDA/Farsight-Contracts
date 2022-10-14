@@ -10,5 +10,5 @@ interface IMainRegistrarController {
     function addChain(uint256 chainId, string calldata targetPropagatorAddress, string calldata chainName) external;
     function removeChain(uint256 chainId, uint256 arrayIndex) external;
 
-    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner) external;
+    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner) external payable;
 }

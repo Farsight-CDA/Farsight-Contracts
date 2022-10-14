@@ -1,4 +1,5 @@
 //SPDX-License-Identifier: MIT
+
 pragma solidity >=0.8.17;
 
 import "../lib/utils/Ownable.sol";
@@ -6,6 +7,7 @@ import "./IMainRegistrarController.sol";
 import "./PaymentProviders/IPaymentProvider.sol";
 import "./IMainRegistrar.sol";
 import "../lib/Axelar/IAxelarGateway.sol";
+import "../lib/Axelar/IAxelarGasService.sol";
 
 contract MainRegistrarController is IMainRegistrarController, Ownable {
     /**********\
@@ -64,6 +66,7 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
     uint256 public maxNameLength;
 
     IAxelarGateway private immutable axelarGateway;
+    IAxelarGasService private immutable axelarGasService;
 
     uint256[] public supportedChains;
     mapping(uint256 => ChainDefinition) private chainDefinitions;
@@ -76,7 +79,8 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
                 uint256 _minRenewDuration,
                 uint256 _minNameLength,
                 uint256 _maxNameLength,
-                IAxelarGateway _axelarGateway
+                IAxelarGateway _axelarGateway,
+                IAxelarGasService _axelarGasService
     ) {
         require(_minCommitmentAge < _maxCommitmentAge);
         require(_maxCommitmentAge > 0);
@@ -94,6 +98,7 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
         maxNameLength = _maxNameLength;
 
         axelarGateway = _axelarGateway;
+        axelarGasService = _axelarGasService;
     }
 
     /***********\
@@ -146,16 +151,29 @@ contract MainRegistrarController is IMainRegistrarController, Ownable {
     |* Cross Chain Setters *|
     \***********************/
 
-    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner) external {
+    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner) external payable {
         if (!chainDefinitions[chainId].isValid) { revert UnsupportedOrInvalidChainId(chainId); }
         if (registrar.ownerOf(name) != msg.sender) {
             revert MustBeNameOwner(registrar.ownerOf(name), msg.sender);
         }
 
+        bytes memory payload = abi.encode(name, owner, registrar.nameExpires(name), registrar.nameVersion(name));
+
+        if(msg.value > 0) {
+          // The line below is where we pay the gas fee
+          axelarGasService.payNativeGasForContractCall{value: msg.value}(
+              address(this),
+              chainDefinitions[chainId].name, 
+              chainDefinitions[chainId].targetAddress, 
+              payload,
+              msg.sender
+          );
+      }
+
         axelarGateway.callContract(
             chainDefinitions[chainId].name, 
             chainDefinitions[chainId].targetAddress, 
-            abi.encode(name, owner, registrar.nameExpires(name), registrar.nameVersion(name))
+            payload
         );
     }
 
