@@ -82,7 +82,7 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     /*******************\
     |* Admin Functions *|
     \*******************/
-    function setNameBridge(IMainNameBridge _mainNameBridge) {
+    function setNameBridge(IMainNameBridge _mainNameBridge) external onlyOwner {
         require (mainNameBridge != _mainNameBridge);
 
         emit NameBridgeChanged(mainNameBridge, _mainNameBridge);

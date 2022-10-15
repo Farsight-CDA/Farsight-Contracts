@@ -65,11 +65,11 @@ contract SubRegistrar is BaseRegistrar, ISubRegistrar {
         if (!transferLocks[name]) { revert NotTransferLocked(); }
         transferLocks[name] = false;
     }
-    
+
     /*******************\
     |* Admin Functions *|
     \*******************/
-    function setNameBridge(ISubNameBridge _subNameBridge) {
+    function setNameBridge(ISubNameBridge _subNameBridge) external onlyOwner {
         require (subNameBridge != _subNameBridge);
 
         emit NameBridgeChanged(subNameBridge, _subNameBridge);

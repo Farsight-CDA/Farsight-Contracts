@@ -29,9 +29,6 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
     /*********\
     |* State *|
     \*********/
-    IAxelarGateway private immutable axelarGateway;
-    IAxelarGasService private immutable axelarGasService;
-    
     IMainRegistrar public immutable mainRegistrar;
 
     mapping(string => string) chainControllers;
@@ -46,8 +43,6 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
                 uint256 _maxNameLength) 
         BaseRegistrarController(_mainRegistrar, _paymentProvider, _minCommitmentAge, _maxCommitmentAge, _minRegisterDuration, _minRenewDuration, _minNameLength, _maxNameLength)
     {
-        axelarGateway = _axelarGateway;
-        axelarGasService = _axelarGasService;
         mainRegistrar = _mainRegistrar;
     }
 
