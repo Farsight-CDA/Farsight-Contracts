@@ -39,6 +39,4 @@ abstract contract Controllable {
     function _checkController() internal view virtual {
         require(_controllers[msg.sender], "Controllable: caller is not an allowed controller");
     }
-
-    function clearControllers() external {}
 }

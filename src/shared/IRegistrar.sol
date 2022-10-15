@@ -2,11 +2,27 @@
 
 pragma solidity >=0.8.17;
 
-interface IRegistrar {
-    function ownerOf(uint256 tokenId) external view returns (address);
+import "../lib/ERC721/IERC721.sol";
+import "./INameBridge.sol";
 
+interface IRegistrar is IERC721 {
+    //If isKeeper returns ownerOf, if not it returns whatever was set from the keeper last time
+    function getLocalOwnerOf(uint256 name) external view returns (address);
     // Returns the expiration timestamp of the specified name.
-    function nameExpires(uint256 name) external view returns (uint256);
+    function getNameExpiration(uint256 name) external view returns (uint256);
+    function isKeeper(uint256 name) external view returns (bool);
 
-    function nameVersion(uint256 name) external view returns (uint256);
+    function getRegistrationVersion(uint256 name) external view returns (uint64);
+    function getOwnerChangeVersion(uint256 name) external view returns (uint64);
+
+    function bridgeNameTo(string calldata chainName, uint256 name, string calldata targetOwner) external payable;
+    //Permissionless briding of expiration timestamp. Only executable if registrar isKeeper for the name.
+    function bridgeExpirationInfoTo(string calldata chainName, uint256 name) external payable;
+    
+    //Called from authed controller / bridge
+    function receiveName(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address owner) external;
+    //Called from authed controller / bridge
+    function receiveExpirationInfo(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration) external;
+
+    function unsafeSetExpiration(uint256 name, uint256 expiration) external;
 }

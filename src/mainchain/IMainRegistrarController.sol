@@ -2,13 +2,9 @@
 
 pragma solidity >=0.8.17;
 
-interface IMainRegistrarController {
-    function commit(bytes32 commitment) external; 
-    function register(string calldata plainName, address owner, uint256 duration, bytes32 secret) external returns (uint256);
-    function renew(string calldata plainName, uint256 duration) external returns (uint256);
+import "../shared/IRegistrarController.sol";
 
-    function addChain(uint256 chainId, string calldata targetPropagatorAddress, string calldata chainName) external;
-    function removeChain(uint256 chainId, uint256 arrayIndex) external;
-
-    function sendNameUpdate(uint256 chainId, uint256 name, string calldata owner) external payable;
+interface IMainRegistrarController is IRegistrarController {
+    function receiveRegisterRequest(string memory sourceChain, string calldata plainName, uint256 name, string calldata owner, uint256 duration, uint256 expiration) external;
+    function receiveRenewRequest(string memory sourceChain, uint256 name, uint64 registrationVersion, uint256 duration, uint256 expiration) external;        
 }

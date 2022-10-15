@@ -19,7 +19,7 @@ contract FixedERC20PaymentProvider is IERC20PaymentProvider {
         return address(paymentToken);
     }
 
-    function getPrice(string calldata name, uint256 expires, uint256 duration) public view returns (uint256) {
+    function getPrice(string calldata, uint256, uint256 duration) public view returns (uint256) {
         //Overflow protection by default (solidity >= 0.8)
         return pricePerSecond * duration;
     }
