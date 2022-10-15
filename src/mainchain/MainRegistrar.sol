@@ -11,21 +11,27 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     |* Errors *|
     \**********/
     error NameUnavailable();
+    error BridgeNotInitialized();
+
+    /**********\
+    |* Events *|
+    \**********/
+    event NameBridgeChanged(IMainNameBridge indexed previous, IMainNameBridge current);
 
     mapping(uint256 => string) plainNames;
 
     IMainNameBridge mainNameBridge;
 
-    constructor(IMainNameBridge _mainNameBridge) 
+    constructor() 
         BaseRegistrar()
     {
-        mainNameBridge = _mainNameBridge;
     }
 
     /***********\
     |* Getters *|
     \***********/
     function getNameBridge() external view returns (IMainNameBridge) {
+        if (address(mainNameBridge) == address(0)) { revert BridgeNotInitialized(); }
         return mainNameBridge;
     }
     // Returns true if the specified name is available for registration.
@@ -73,6 +79,16 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
         nameInfos[name].expiration = expiration;
     }
 
+    /*******************\
+    |* Admin Functions *|
+    \*******************/
+    function setNameBridge(IMainNameBridge _mainNameBridge) {
+        require (mainNameBridge != _mainNameBridge);
+
+        emit NameBridgeChanged(mainNameBridge, _mainNameBridge);
+        mainNameBridge = _mainNameBridge;
+    }
+
     /**********************\
     |* Internal Functions *|
     \**********************/
@@ -83,6 +99,7 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     }
 
     function _nameBridge() internal view override returns (INameBridge) {
+        if (address(mainNameBridge) == address(0)) { revert BridgeNotInitialized(); }
         return mainNameBridge;
     }
 }

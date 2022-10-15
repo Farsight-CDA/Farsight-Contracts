@@ -13,15 +13,20 @@ contract SubRegistrar is BaseRegistrar, ISubRegistrar {
     \**********/
     error NotTransferLocked();
     error TransferLocked();
+    error BridgeNotInitialized();
+
+    /**********\
+    |* Events *|
+    \**********/
+    event NameBridgeChanged(ISubNameBridge indexed previous, ISubNameBridge current);
 
     mapping(uint256 => bool) transferLocks;
 
     ISubNameBridge subNameBridge;
 
-    constructor(ISubNameBridge _subNameBridge) 
+    constructor() 
         BaseRegistrar()
     {
-        subNameBridge = _subNameBridge;
     }
 
     /********************\
@@ -41,6 +46,7 @@ contract SubRegistrar is BaseRegistrar, ISubRegistrar {
     |* Getters *|
     \***********/
     function getNameBridge() external view returns (ISubNameBridge) {
+        if (address(subNameBridge) == address(0)) { revert BridgeNotInitialized(); }
         return subNameBridge;
     }
     function isTransferLocked(uint256 name) external view returns (bool) {
@@ -59,11 +65,22 @@ contract SubRegistrar is BaseRegistrar, ISubRegistrar {
         if (!transferLocks[name]) { revert NotTransferLocked(); }
         transferLocks[name] = false;
     }
+    
+    /*******************\
+    |* Admin Functions *|
+    \*******************/
+    function setNameBridge(ISubNameBridge _subNameBridge) {
+        require (subNameBridge != _subNameBridge);
+
+        emit NameBridgeChanged(subNameBridge, _subNameBridge);
+        subNameBridge = _subNameBridge;
+    }
 
     /**********************\
     |* Internal Functions *|
     \**********************/
     function _nameBridge() internal view override returns (INameBridge) {
+        if (address(subNameBridge) == address(0)) { revert BridgeNotInitialized(); }
         return subNameBridge;
     }
 }
