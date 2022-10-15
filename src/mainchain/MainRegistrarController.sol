@@ -6,11 +6,8 @@ import "./IMainRegistrarController.sol";
 import "../shared/BaseRegistrarController.sol";
 import "./IMainRegistrar.sol";
 import "../shared/PaymentProviders/IPaymentProvider.sol";
-import "../lib/Axelar/IAxelarExecutable.sol";
-import "../lib/Axelar/IAxelarGasService.sol";
-import "../lib/Axelar/IAxelarGateway.sol";
 
-contract MainRegistrarController is BaseRegistrarController, IMainRegistrarController, IAxelarExecutable {
+contract MainRegistrarController is BaseRegistrarController, IMainRegistrarController {
     /**********\
     |* Errors *|
     \**********/
@@ -39,9 +36,7 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
 
     mapping(string => string) chainControllers;
 
-    constructor(IAxelarGateway _axelarGateway,
-                IAxelarGasService _axelarGasService,
-                IMainRegistrar _mainRegistrar,
+    constructor(IMainRegistrar _mainRegistrar,
                 IPaymentProvider _paymentProvider,
                 uint256 _minCommitmentAge,
                 uint256 _maxCommitmentAge,
@@ -49,7 +44,6 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
                 uint256 _minRenewDuration,
                 uint256 _minNameLength,
                 uint256 _maxNameLength) 
-        IAxelarExecutable(address(_axelarGateway))
         BaseRegistrarController(_mainRegistrar, _paymentProvider, _minCommitmentAge, _maxCommitmentAge, _minRegisterDuration, _minRenewDuration, _minNameLength, _maxNameLength)
     {
         axelarGateway = _axelarGateway;
