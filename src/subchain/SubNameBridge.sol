@@ -8,8 +8,11 @@ import "./ISubRegistrarController.sol";
 import "../lib/Axelar/IAxelarExecutable.sol";
 import "../lib/Axelar/IAxelarGasService.sol";
 import "../lib/Axelar/IAxelarGateway.sol";
+import "../lib/utils/StringAddressUtils.sol";
 
 contract SubNameBridge is BaseNameBridge, ISubNameBridge {
+    using AddressToString for address;
+
     /**********\
     |* Events *|
     \**********/
@@ -46,7 +49,7 @@ contract SubNameBridge is BaseNameBridge, ISubNameBridge {
 
     function bridgeRegisterRequest(string calldata plainName, uint256 name, address owner, uint256 duration, uint256 expiration) external payable onlyController {
         if (!chainDefinitions[mainChainName].isValid) { revert UnsupportedOrInvalidChain(mainChainName); }
-        bytes memory payload = abi.encode(10, abi.encode(plainName, name, owner, duration, expiration));
+        bytes memory payload = abi.encode(10, abi.encode(plainName, name, owner.toString(), duration, expiration));
 
         if(msg.value > 0) {
           // The line below is where we pay the gas fee
