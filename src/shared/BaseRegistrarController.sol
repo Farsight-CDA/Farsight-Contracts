@@ -28,7 +28,7 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
     |* State *|
     \*********/
     IRegistrar private immutable registrar;
-    IPaymentProvider public paymentProvider;
+    IPaymentProvider private paymentProvider;
 
     uint256 public immutable minCommitmentAge;
     uint256 public immutable maxCommitmentAge;
@@ -73,6 +73,10 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
         return commitments[commitment];
     }
 
+    function getPaymentProvider() external view returns (IPaymentProvider) {
+        return paymentProvider;
+    }
+
     /***********\
     |* Setters *|
     \***********/
@@ -104,6 +108,17 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
 
         return _doRenew(name, registrar.getRegistrationVersion(name), duration, expiration);
     }
+    
+    /*******************\
+    |* Admin Functions *|
+    \*******************/
+    function setPaymentProvider(IPaymentProvider _paymentProvider) external onlyOwner {
+        require(paymentProvider != _paymentProvider);
+
+        emit PaymentProviderChanged(paymentProvider, _paymentProvider);
+        paymentProvider = _paymentProvider;
+    }
+
 
     /**********************\
     |* Internal Functions *|
