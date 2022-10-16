@@ -47,7 +47,7 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
     }
 
     modifier onlyNameBridge() {
-        require(address(mainRegistrar.getNameBridge()) == msg.sender);
+        require(address(mainRegistrar.getNameBridge()) == msg.sender, "Only callable by bridge contract");
         _;
     }
 
@@ -60,13 +60,13 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
     function receiveName(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address owner) external onlyNameBridge {
         mainRegistrar.receiveName(name, registrationVersion, ownerChangeVersion, expiration, owner);
     }
-    function receiveRegisterRequest(string memory sourceChain, string calldata plainName, uint256 name, string calldata owner, uint256 duration, uint256 expiration) external onlyNameBridge {
-        _doRegister(plainName, name, address(this), duration, expiration);
+    function receiveRegisterRequest(string memory sourceChain, string calldata plainName, uint256 name, string calldata owner, uint256 duration) external onlyNameBridge {
+        _doRegister(plainName, name, address(this), duration);
         mainRegistrar.bridgeNameTo(sourceChain, name, owner);
     }
-    function receiveRenewRequest(string memory sourceChain, uint256 name, uint64 registrationVersion, uint256 duration, uint256 expiration) external onlyNameBridge {
-        _doRenew(name, registrationVersion, duration, expiration);
-        mainRegistrar.getNameBridge().bridgeRenewalSuccess(sourceChain, name, expiration);
+    function receiveRenewRequest(string memory sourceChain, uint256 name, uint64 registrationVersion, uint256 duration) external onlyNameBridge {
+        mainRegistrar.getNameBridge().bridgeRenewalSuccess(sourceChain, name, 
+            _doRenew(name, registrationVersion, duration));
     }      
 
     /*******************\
@@ -103,7 +103,7 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
     /**********************\
     |* Internal Functions *|
     \**********************/
-    function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration, uint256 expiration) internal override returns (uint256) {
+    function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration) internal override returns (uint256) {
         if (duration < minRegisterDuration) { revert RegisterDurationTooShort(minRegisterDuration, duration); }
 
         uint256 length = utfStringLength(plainName);
@@ -111,15 +111,13 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
         if (length < minNameLength) { revert NameTooShort(minNameLength, length); }
         if (length > maxNameLength) { revert NameTooLong(maxNameLength, length); }
 
-        mainRegistrar.register(plainName, name, owner, expiration);
-        return expiration;
+        return mainRegistrar.register(plainName, name, owner, duration);
     }
 
-    function _doRenew(uint256 name, uint64 registrationVersion, uint256 duration, uint256 expiration) internal override returns (uint256) {
+    function _doRenew(uint256 name, uint64 registrationVersion, uint256 duration) internal override returns (uint256) {
         if (duration < minRenewDuration) { revert RenewDurationTooShort(minRenewDuration, duration); }
 
-        mainRegistrar.renew(name, registrationVersion, expiration);
-        return expiration;
+        return mainRegistrar.renew(name, registrationVersion, duration);
     }
 
     

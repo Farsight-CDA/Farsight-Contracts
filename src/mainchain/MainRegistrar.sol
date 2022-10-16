@@ -10,8 +10,9 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     /**********\
     |* Errors *|
     \**********/
-    error NameUnavailable();
+    error NameUnavailable(uint256 expiration);
     error BridgeNotInitialized();
+    error RegistrationVersionMismatch(uint64 current, uint64 given);
 
     /**********\
     |* Events *|
@@ -49,15 +50,15 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     /************************\
     |* Controller Functions *|
     \************************/
-    function register(string calldata plainName, uint256 name, address owner, uint256 expiration) external onlyController {
-        if (!available(name)) { revert NameUnavailable(); }
+    function register(string calldata plainName, uint256 name, address owner, uint256 duration) external onlyController returns (uint256) {
+        if (!available(name)) { revert NameUnavailable(nameInfos[name].expiration); }
         require(
-            expiration + GRACE_PERIOD >
+            block.timestamp + duration + GRACE_PERIOD >
                 block.timestamp + GRACE_PERIOD
         ); // Prevent overflow
 
         nameInfos[name] = NameInfo({
-            expiration: expiration,
+            expiration: block.timestamp + duration,
             registrationVersion: nameInfos[name].registrationVersion + 1,
             ownerChangeVersion: 0,
             isKeeper: true,
@@ -66,7 +67,7 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
 
         plainNames[name] = plainName;
 
-        emit NameRegistered(name, nameInfos[name].registrationVersion, owner, expiration, plainName);
+        emit NameRegistered(name, nameInfos[name].registrationVersion, owner, block.timestamp + duration, plainName);
 
         if (_exists(name)) { 
             // Name was previously owned, and expired
@@ -74,14 +75,18 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
         }
         
         _mint(owner, name);
+        return block.timestamp + duration;
     }
 
-    function renew(uint256 name, uint64 registrationVersion, uint256 expiration) external onlyController {
-        require (nameInfos[name].registrationVersion == registrationVersion);
+    function renew(uint256 name, uint64 registrationVersion, uint256 duration) external onlyController returns (uint256) {
+        if (nameInfos[name].registrationVersion != registrationVersion) { revert RegistrationVersionMismatch(nameInfos[name].registrationVersion, registrationVersion); }
         if (available(name)) { revert NameExpired(); }
 
-        emit NameRenewed(name, registrationVersion, nameInfos[name].expiration, expiration);
-        nameInfos[name].expiration = expiration;
+        uint256 newExpiration = nameInfos[name].expiration + duration;
+
+        emit NameRenewed(name, registrationVersion, nameInfos[name].expiration, newExpiration);
+        nameInfos[name].expiration = newExpiration;
+        return newExpiration;
     }
 
     /*******************\

@@ -11,6 +11,11 @@ import "../lib/Axelar/IAxelarGasService.sol";
 import "../lib/Axelar/IAxelarExecutable.sol";
 
 contract SubRegistrarController is BaseRegistrarController, ISubRegistrarController {
+    /**********\
+    |* Errors *|
+    \**********/
+    error TransferLocked();
+
     ISubRegistrar public immutable subRegistrar;
 
     constructor(ISubRegistrar _subRegistrar,
@@ -27,7 +32,7 @@ contract SubRegistrarController is BaseRegistrarController, ISubRegistrarControl
     }
 
     modifier onlyNameBridge() {
-        require(address(subRegistrar.getNameBridge()) == msg.sender);
+        require(address(subRegistrar.getNameBridge()) == msg.sender, "Only callable by bridge contract");
         _;
     }
 
@@ -52,18 +57,18 @@ contract SubRegistrarController is BaseRegistrarController, ISubRegistrarControl
     /**********************\
     |* Internal Functions *|
     \**********************/
-    function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration, uint256 expiration) internal override returns (uint256) {
+    function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration) internal override returns (uint256) {
         subRegistrar.getNameBridge().bridgeRegisterRequest(
-            plainName, name, owner, duration, expiration);
-        return expiration;
+            plainName, name, owner, duration);
+        return 0;
     }
 
-    function _doRenew(uint256 name, uint64 registrationVersion, uint256 duration, uint256 expiration) internal override returns (uint256) {
-        require(!subRegistrar.isTransferLocked(name));
+    function _doRenew(uint256 name, uint64 registrationVersion, uint256 duration) internal override returns (uint256) {
+        if(subRegistrar.isTransferLocked(name)) { revert TransferLocked(); }
         subRegistrar.applyTransferLock(name);
 
         subRegistrar.getNameBridge().bridgeRenewalRequest(
-            name, registrationVersion, duration, expiration);
-        return expiration;
+            name, registrationVersion, duration);
+        return 0;
     }
 }

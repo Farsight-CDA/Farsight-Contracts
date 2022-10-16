@@ -12,7 +12,7 @@ interface IMainRegistrar is IRegistrar {
 
     function lookupPlainName(uint256 name) external view returns (string memory);
 
-    function register(string memory plainName, uint256 name, address owner, uint256 expiration) external;
+    function register(string memory plainName, uint256 name, address owner, uint256 duration) external returns (uint256);
 
-    function renew(uint256 name, uint64 registrationVersion, uint256 expiration) external;
+    function renew(uint256 name, uint64 registrationVersion, uint256 duration) external returns (uint256);
 }

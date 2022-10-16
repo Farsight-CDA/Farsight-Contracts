@@ -93,7 +93,7 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
         paymentProvider.collectPayment(msg.sender, plainName, 0, duration); 
 
         _consumeCommitment(name, owner, duration, secret);
-        return _doRegister(plainName, name, owner, duration, block.timestamp + duration);
+        return _doRegister(plainName, name, owner, duration);
     }
 
     function renew(string calldata plainName, uint256 duration) external payable returns (uint256) {
@@ -103,10 +103,9 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
         if (msg.sender != owner && !registrar.isApprovedForAll(owner, msg.sender) && !(registrar.getApproved(name) == msg.sender)) { revert MustBeApprovedOrOwner(); }
         if (!registrar.isKeeper(name)) { revert MustBeOnKeeperChain(); }
 
-        uint256 expiration = _max(block.timestamp, registrar.getNameExpiration(name)) + duration;
-        paymentProvider.collectPayment(msg.sender, plainName, expiration, duration);
+        paymentProvider.collectPayment(msg.sender, plainName, registrar.getNameExpiration(name), duration);
 
-        return _doRenew(name, registrar.getRegistrationVersion(name), duration, expiration);
+        return _doRenew(name, registrar.getRegistrationVersion(name), duration);
     }
     
     /*******************\
@@ -140,6 +139,6 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
     /**********************\
     |* Abstract Functions *|
     \**********************/
-    function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration, uint256 expiration) internal virtual returns (uint256);
-    function _doRenew(uint256 name, uint64 registrationVersion, uint256 duration, uint256 expiration) internal virtual returns (uint256);
+    function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration) internal virtual returns (uint256);
+    function _doRenew(uint256 name, uint64 registrationVersion, uint256 duration) internal virtual returns (uint256);
 }

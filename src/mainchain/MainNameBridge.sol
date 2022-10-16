@@ -23,19 +23,18 @@ contract MainNameBridge is BaseNameBridge, IMainNameBridge {
     function _handleMessageType(string memory chainName, uint256 messageType, bytes memory innerMessage) internal override {
         uint256 name;
         uint256 duration;
-        uint256 expiration;
 
         if (messageType == 10) { //Register
             string memory plainName;
             string memory owner;
 
-            (plainName, name, owner, duration, expiration) = abi.decode(innerMessage, (string, uint256, string, uint256, uint256));
-            mainRegistrarController.receiveRegisterRequest(chainName, plainName, name, owner, duration, expiration);
+            (plainName, name, owner, duration) = abi.decode(innerMessage, (string, uint256, string, uint256));
+            mainRegistrarController.receiveRegisterRequest(chainName, plainName, name, owner, duration);
         } else if (messageType == 11) { //Renew
             uint64 registrationVersion;
 
-            (name, registrationVersion, duration, expiration) = abi.decode(innerMessage, (uint256, uint64, uint256, uint256));
-            mainRegistrarController.receiveRenewRequest(chainName, name, registrationVersion, duration, expiration); //Reverts if unsuccessful
+            (name, registrationVersion, duration) = abi.decode(innerMessage, (uint256, uint64, uint256));
+            mainRegistrarController.receiveRenewRequest(chainName, name, registrationVersion, duration); //Reverts if unsuccessful
         }
 
         assert(false);
