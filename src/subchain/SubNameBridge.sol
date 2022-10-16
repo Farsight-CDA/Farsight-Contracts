@@ -10,6 +10,14 @@ import "../lib/Axelar/IAxelarGasService.sol";
 import "../lib/Axelar/IAxelarGateway.sol";
 
 contract SubNameBridge is BaseNameBridge, ISubNameBridge {
+    /**********\
+    |* Events *|
+    \**********/
+    event MainChainChanged(string previous, string current);
+
+    /*********\
+    |* State *|
+    \*********/
     ISubRegistrarController private immutable subRegistrarController;
 
     string mainChainName;
@@ -78,5 +86,15 @@ contract SubNameBridge is BaseNameBridge, ISubNameBridge {
             chainDefinitions[mainChainName].targetBridgeAddress, 
             payload
         );
+    }
+
+    /*******************\
+    |* Admin Functions *|
+    \*******************/
+    function setMainChain(string calldata _mainChainName) external onlyOwner {
+        require(keccak256(bytes(mainChainName)) != keccak256(bytes(_mainChainName)));
+
+        emit MainChainChanged(mainChainName, _mainChainName);
+        mainChainName = _mainChainName;
     }
 }
