@@ -204,6 +204,11 @@ abstract contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistrar {
         emit BaseURIChanged(baseURI, _newBaseURI);
         baseURI = _newBaseURI;
     }
+    
+    // Add / Remove addresses that are allowed to call `onlyController` methods.
+    function setController(address controller, bool allowed) external onlyOwner {
+        super._setController(controller, allowed);
+    }
 
     /**********************\
     |* Abstract Functions *|
