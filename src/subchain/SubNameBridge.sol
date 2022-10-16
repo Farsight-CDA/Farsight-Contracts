@@ -43,8 +43,9 @@ contract SubNameBridge is BaseNameBridge, ISubNameBridge {
             (name, newExpiration) = abi.decode(innerMessage, (uint256, uint256));
             subRegistrarController.receiveRenewSuccess(name, newExpiration);
         }
-
-        assert(false);
+        else {
+            assert(false);
+        }
     }
 
     function bridgeRegisterRequest(string calldata plainName, uint256 name, address owner, uint256 duration) external payable onlyController {

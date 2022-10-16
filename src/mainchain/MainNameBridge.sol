@@ -35,9 +35,9 @@ contract MainNameBridge is BaseNameBridge, IMainNameBridge {
 
             (name, registrationVersion, duration) = abi.decode(innerMessage, (uint256, uint64, uint256));
             mainRegistrarController.receiveRenewRequest(chainName, name, registrationVersion, duration); //Reverts if unsuccessful
+        } else {
+            assert(false);
         }
-
-        assert(false);
     }
 
     function bridgeRenewalSuccess(string calldata chainName, uint256 name, uint256 newExpiration) public payable onlyController
