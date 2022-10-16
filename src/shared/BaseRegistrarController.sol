@@ -69,8 +69,8 @@ abstract contract BaseRegistrarController is IRegistrarController, Ownable {
     /***********\
     |* Getters *|
     \***********/
-    function hasCommitment(bytes32 commitment) external view returns (bool) {
-        return commitments[commitment] + maxCommitmentAge >= block.timestamp;
+    function getCommitment(bytes32 commitment) external view returns (uint256) {
+        return commitments[commitment];
     }
 
     /***********\
