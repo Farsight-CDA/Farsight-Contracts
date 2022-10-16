@@ -26,7 +26,6 @@ contract MainNameBridge is BaseNameBridge, IMainNameBridge {
         uint256 expiration;
 
         if (messageType == 10) { //Register
-            (name) = abi.decode(innerMessage, (uint256));
             string memory plainName;
             string memory owner;
 
