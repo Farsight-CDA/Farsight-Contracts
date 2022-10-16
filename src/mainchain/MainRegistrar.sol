@@ -17,8 +17,8 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     |* Events *|
     \**********/
     event NameBridgeChanged(IMainNameBridge indexed previous, IMainNameBridge current);
-    event NameRegistered(uint256 indexed name, uint256 indexed registrationVersion, address indexed owner, uint256 indexed expiration, string plainName);
-    event NameRenewed(uint256 indexed name, uint256 indexed registrationVersion, uint256 indexed previous, uint256 current);
+    event NameRegistered(uint256 indexed name, uint256 indexed registrationVersion, address owner, uint256 expiration, string plainName);
+    event NameRenewed(uint256 indexed name, uint256 indexed registrationVersion, uint256 previous, uint256 current);
 
     mapping(uint256 => string) plainNames;
 
@@ -80,7 +80,7 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
         require (nameInfos[name].registrationVersion == registrationVersion);
         if (available(name)) { revert NameExpired(); }
 
-        emit NameRenewed(name, registrationVersion, getNameExpiration(name), expiration);
+        emit NameRenewed(name, registrationVersion, nameInfos[name].expiration, expiration);
         nameInfos[name].expiration = expiration;
     }
 

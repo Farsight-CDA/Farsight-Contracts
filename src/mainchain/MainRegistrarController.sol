@@ -111,7 +111,6 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
         if (length < minNameLength) { revert NameTooShort(minNameLength, length); }
         if (length > maxNameLength) { revert NameTooLong(maxNameLength, length); }
 
-
         mainRegistrar.register(plainName, name, owner, expiration);
         return expiration;
     }
