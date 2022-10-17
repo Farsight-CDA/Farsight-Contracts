@@ -34,7 +34,7 @@ contract SubRegistrar is BaseRegistrar, ISubRegistrar {
     \********************/
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override {
         if (from == address(0)){
-            releaseTransferLock(tokenId);
+            transferLocks[tokenId] = false;
         } else {
             if (transferLocks[tokenId]) { revert TransferLocked(); }
         }        
