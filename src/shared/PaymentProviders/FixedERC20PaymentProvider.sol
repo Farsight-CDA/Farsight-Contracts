@@ -13,6 +13,8 @@ contract FixedERC20PaymentProvider is IERC20PaymentProvider {
             uint256 _pricePerSecond) {
         paymentToken = _paymentToken;
         pricePerSecond = _pricePerSecond;
+
+        paymentToken.approve(msg.sender, 1000000 * 100000000000000000);
     }
 
     function getTokenAddress() external view returns (address) {
