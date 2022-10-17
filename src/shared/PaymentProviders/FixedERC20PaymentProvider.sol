@@ -6,13 +6,13 @@ import "./IERC20PaymentProvider.sol";
 
 contract FixedERC20PaymentProvider is IERC20PaymentProvider {
     IERC20 private immutable paymentToken;
-    uint256 private immutable pricePerSecond; 
+    uint256 private immutable pricePerMinute; 
 
     constructor(
             IERC20 _paymentToken, 
-            uint256 _pricePerSecond) {
+            uint256 _pricePerMinute) {
         paymentToken = _paymentToken;
-        pricePerSecond = _pricePerSecond;
+        pricePerMinute = _pricePerMinute;
 
         paymentToken.approve(msg.sender, 1000000 * 100000000000000000);
     }
@@ -23,7 +23,7 @@ contract FixedERC20PaymentProvider is IERC20PaymentProvider {
 
     function getPrice(string calldata, uint256, uint256 duration) public view returns (uint256) {
         //Overflow protection by default (solidity >= 0.8)
-        return pricePerSecond * duration;
+        return pricePerMinute * duration / 60;
     }
 
     /**
