@@ -60,7 +60,7 @@ contract SubRegistrarController is BaseRegistrarController, ISubRegistrarControl
     |* Internal Functions *|
     \**********************/
     function _doRegister(string memory plainName, uint256 name, address owner, uint256 duration) internal override returns (uint256) {
-        subRegistrar.getNameBridge().bridgeRegisterRequest(
+        subRegistrar.getNameBridge().bridgeRegisterRequest{value: msg.value}(
             plainName, name, owner, duration);
         return 0;
     }
@@ -69,7 +69,7 @@ contract SubRegistrarController is BaseRegistrarController, ISubRegistrarControl
         if(subRegistrar.isTransferLocked(name)) { revert TransferLocked(); }
         subRegistrar.applyTransferLock(name);
 
-        subRegistrar.getNameBridge().bridgeRenewalRequest(
+        subRegistrar.getNameBridge().bridgeRenewalRequest{value: msg.value}(
             name, registrationVersion, duration);
         return 0;
     }
