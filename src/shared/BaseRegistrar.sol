@@ -80,6 +80,8 @@ abstract contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistrar {
     
     function ownerOf(uint256 name) public view override(ERC721, IERC721) returns (address) {
         if (nameInfos[name].expiration <= block.timestamp) { revert NameExpired(); }
+        if (!nameInfos[name].isKeeper) { revert MustBeKeeperChain(); }
+
         return super.ownerOf(name);
     }
 
@@ -125,8 +127,14 @@ abstract contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistrar {
     /***********\
     |* Setters *|
     \***********/ 
+    function incrementOwnerVersion(uint256 name) external {
+        if (!_isApprovedOrOwner(msg.sender, name)) { revert MustBeApprovedOrOwner(); } //This is false if not isKeeper or expired
+
+        nameInfos[name].ownerChangeVersion += 1;
+    }
+
     function bridgeNameTo(string calldata chainName, uint256 name, string calldata targetOwner) external payable {
-        if (!_isApprovedOrOwner(msg.sender, name)) { revert MustBeApprovedOrOwner(); } //This is false if not isKeeper
+        if (!_isApprovedOrOwner(msg.sender, name)) { revert MustBeApprovedOrOwner(); } //This is false if not isKeeper or expired
 
         _burn(name);
         nameInfos[name].isKeeper = false;
@@ -154,6 +162,19 @@ abstract contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistrar {
             nameInfos[name].registrationVersion, 
             nameInfos[name].ownerChangeVersion, 
             nameInfos[name].expiration
+        );
+    }
+
+    function bridgeLocalOwnerTo(string calldata chainName, uint256 name, string calldata targetLocalOwner) external payable {
+        if (!_isApprovedOrOwner(msg.sender, name)) { revert MustBeApprovedOrOwner(); } //This is false if not isKeeper or expired
+
+        _nameBridge().bridgeLocalOwnerTo{value: msg.value}(
+            chainName, 
+            name, 
+            nameInfos[name].registrationVersion, 
+            nameInfos[name].ownerChangeVersion, 
+            nameInfos[name].expiration,
+            targetLocalOwner
         );
     }
 
@@ -187,10 +208,25 @@ abstract contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistrar {
         require(nameInfos[name].ownerChangeVersion == ownerChangeVersion);
         require(expiration > block.timestamp); //Updating only useful if still valid
         require(expiration > nameInfos[name].expiration); //Cannot be used to lower expiration
-        //If name isKeeper than it must be expired! Can be triggered if transfer is executed before expirationInfo send
+        //If name isKeeper than it must be expired! Can be triggered if transfer is executed before expirationInfo send (in that case no change is needed anyway)
         require(!nameInfos[name].isKeeper || nameInfos[name].expiration + GRACE_PERIOD < block.timestamp);
 
         nameInfos[name].expiration = expiration;
+        nameInfos[name].isKeeper = false; //Delete previous expired keeper
+    }
+
+    function receiveLocalOwner(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address localOwner) external onlyController {
+        require(nameInfos[name].registrationVersion <= registrationVersion);
+        require(nameInfos[name].ownerChangeVersion <= ownerChangeVersion);
+        require(expiration > block.timestamp); //Updating only useful if still valid
+        require(!nameInfos[name].isKeeper || nameInfos[name].expiration + GRACE_PERIOD < block.timestamp);
+
+        nameInfos[name].expiration = _max(expiration, nameInfos[name].expiration);
+        nameInfos[name].registrationVersion = registrationVersion;
+        nameInfos[name].ownerChangeVersion = ownerChangeVersion;
+
+        nameInfos[name].localOwner = localOwner;
+        nameInfos[name].isKeeper = false; //Delete previous expired keeper
     }
 
     function unsafeSetExpiration(uint256 name, uint256 expiration) external onlyController {
@@ -214,4 +250,12 @@ abstract contract BaseRegistrar is ERC721, Ownable, Controllable, IRegistrar {
     |* Abstract Functions *|
     \**********************/
     function _nameBridge() internal view virtual returns (INameBridge);
+
+    /**********************\
+    |* Internal Functions *|
+    \**********************/
+    // Returns the larger of two numbers
+    function _max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
 }

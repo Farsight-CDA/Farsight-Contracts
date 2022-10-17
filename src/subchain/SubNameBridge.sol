@@ -39,7 +39,7 @@ contract SubNameBridge is BaseNameBridge, ISubNameBridge {
         uint256 name;
         uint256 newExpiration;
 
-        if (messageType == 2) {
+        if (messageType == BridgeRenewSuccessMessageType) {
             (name, newExpiration) = abi.decode(innerMessage, (uint256, uint256));
             subRegistrarController.receiveRenewSuccess(name, newExpiration);
         }
@@ -50,7 +50,7 @@ contract SubNameBridge is BaseNameBridge, ISubNameBridge {
 
     function bridgeRegisterRequest(string calldata plainName, uint256 name, address owner, uint256 duration) external payable onlyController {
         if (!chainDefinitions[mainChainName].isValid) { revert UnsupportedOrInvalidChain(mainChainName); }
-        bytes memory payload = abi.encode(10, abi.encode(plainName, name, owner.toString(), duration));
+        bytes memory payload = abi.encode(BridgeRegisterRequestMessageType, abi.encode(plainName, name, owner.toString(), duration));
 
         if(msg.value > 0) {
           // The line below is where we pay the gas fee
@@ -72,7 +72,7 @@ contract SubNameBridge is BaseNameBridge, ISubNameBridge {
 
     function bridgeRenewalRequest(uint256 name, uint64 registrationVersion, uint256 duration) external payable onlyController {
         if (!chainDefinitions[mainChainName].isValid) { revert UnsupportedOrInvalidChain(mainChainName); }
-        bytes memory payload = abi.encode(11, abi.encode(name, registrationVersion, duration));
+        bytes memory payload = abi.encode(BridgeRenewRequestMessageType, abi.encode(name, registrationVersion, duration));
 
         if(msg.value > 0) {
           // The line below is where we pay the gas fee

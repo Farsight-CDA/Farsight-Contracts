@@ -67,7 +67,10 @@ contract MainRegistrarController is BaseRegistrarController, IMainRegistrarContr
     function receiveRenewRequest(string memory sourceChain, uint256 name, uint64 registrationVersion, uint256 duration) external onlyNameBridge {
         mainRegistrar.getNameBridge().bridgeRenewalSuccess(sourceChain, name, 
             _doRenew(name, registrationVersion, duration));
-    }      
+    }
+    function receiveLocalOwner(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address localOwner) external onlyNameBridge {
+        mainRegistrar.receiveLocalOwner(name, registrationVersion, ownerChangeVersion, expiration, localOwner);
+    }
 
     /*******************\
     |* Admin Functions *|

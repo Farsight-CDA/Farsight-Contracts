@@ -102,12 +102,6 @@ contract MainRegistrar is BaseRegistrar, IMainRegistrar {
     /**********************\
     |* Internal Functions *|
     \**********************/
-
-    // Returns the larger of two numbers
-    function _max(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >= b ? a : b;
-    }
-
     function _nameBridge() internal view override returns (INameBridge) {
         if (address(mainNameBridge) == address(0)) { revert BridgeNotInitialized(); }
         return mainNameBridge;

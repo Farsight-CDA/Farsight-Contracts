@@ -42,11 +42,12 @@ contract SubRegistrarController is BaseRegistrarController, ISubRegistrarControl
     function receiveExpirationInfo(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration) external onlyNameBridge {
         subRegistrar.receiveExpirationInfo(name, registrationVersion, ownerChangeVersion, expiration);
     }
-
     function receiveName(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address owner) external onlyNameBridge {
         subRegistrar.receiveName(name, registrationVersion, ownerChangeVersion, expiration, owner);
     }
-
+    function receiveLocalOwner(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address localOwner) external onlyNameBridge {
+        subRegistrar.receiveLocalOwner(name, registrationVersion, ownerChangeVersion, expiration, localOwner);
+    }
     function receiveRenewSuccess(uint256 name, uint256 newExpiration) external onlyNameBridge {
         subRegistrar.unsafeSetExpiration(name, newExpiration);
         subRegistrar.releaseTransferLock(name);
@@ -54,6 +55,7 @@ contract SubRegistrarController is BaseRegistrarController, ISubRegistrarControl
         //In case the renew fails this lock is not released.
         //Instead it will be reset when the newly registered NFT is sent to this chain.
     }   
+
     /**********************\
     |* Internal Functions *|
     \**********************/

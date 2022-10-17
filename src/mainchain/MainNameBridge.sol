@@ -24,13 +24,13 @@ contract MainNameBridge is BaseNameBridge, IMainNameBridge {
         uint256 name;
         uint256 duration;
 
-        if (messageType == 10) { //Register
+        if (messageType == BridgeRegisterRequestMessageType) {
             string memory plainName;
             string memory owner;
 
             (plainName, name, owner, duration) = abi.decode(innerMessage, (string, uint256, string, uint256));
             mainRegistrarController.receiveRegisterRequest(chainName, plainName, name, owner, duration);
-        } else if (messageType == 11) { //Renew
+        } else if (messageType == BridgeRenewRequestMessageType) {
             uint64 registrationVersion;
 
             (name, registrationVersion, duration) = abi.decode(innerMessage, (uint256, uint64, uint256));
@@ -44,7 +44,7 @@ contract MainNameBridge is BaseNameBridge, IMainNameBridge {
     {
         if (!chainDefinitions[chainName].isValid) { revert UnsupportedOrInvalidChain(chainName); }
 
-        bytes memory payload = abi.encode(2, abi.encode(name, newExpiration));
+        bytes memory payload = abi.encode(BridgeRenewSuccessMessageType, abi.encode(name, newExpiration));
 
         if(msg.value > 0) {
           // The line below is where we pay the gas fee

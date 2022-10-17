@@ -10,4 +10,7 @@ interface INameBridge {
     //Sends expiration info from keeper to other chain with same versions
     function bridgeExpirationInfoTo(string calldata chainName, uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion,
                                     uint256 expiration) external payable;
+
+    function bridgeLocalOwnerTo(string calldata chainName, uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion,
+                                uint256 expiration, string calldata targetLocalOwner) external payable;
 }

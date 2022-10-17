@@ -13,6 +13,14 @@ import "./INameBridge.sol";
 
 abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, INameBridge {
     using StringToAddress for string;
+    uint64 internal constant BridgeNameMessageType = 0;
+    uint64 internal constant BridgeExpirationInfoMessageType = 1;
+    uint64 internal constant BridgeLocalOwnerMessageType = 2;
+
+    uint64 internal constant BridgeRegisterRequestMessageType = 10;
+    uint64 internal constant BridgeRenewRequestMessageType = 11;
+
+    uint64 internal constant BridgeRenewSuccessMessageType = 20;
 
     /**********\
     |* Errors *|
@@ -24,6 +32,10 @@ abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, IN
     /**********\
     |* Events *|
     \**********/
+    event BridgeNameTo(uint256 indexed name, string targetChain, uint256 expiration, string targetOwner);
+    event BridgeExpirationInfoTo(uint256 indexed name, string targetChain, uint256 expiration);
+    event BridgeLocalOwnerTo(uint256 indexed name, string targetChain, uint256 expiration, string targetLocalOwner);
+
     event ChainAdded(string indexed chainName, string indexed targetBridgeAddress);
     event ChainRemoved(string indexed chainName);
 
@@ -65,24 +77,30 @@ abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, IN
         require(keccak256(bytes(chainDefinitions[sourceChain].targetBridgeAddress)) == keccak256(bytes(sourceAddress)));
 
         bytes memory innerMessage;
-        uint256 messageType;
+        uint64 messageType;
 
         uint256 name; 
         uint64 registrationVersion; 
         uint64 ownerChangeVersion;
         uint256 expiration;
         
-        (messageType, innerMessage) = abi.decode(payload, (uint256, bytes));
+        (messageType, innerMessage) = abi.decode(payload, (uint64, bytes));
 
-        if (messageType == 0) {
+        if (messageType == BridgeNameMessageType) {
             string memory targetOwner;
  
             (name, registrationVersion, ownerChangeVersion, expiration, targetOwner) = abi.decode(innerMessage, (uint256, uint64, uint64, uint256, string));
             registrarController.receiveName(name, registrationVersion, ownerChangeVersion, expiration, targetOwner.toAddress());
         }
-        else if (messageType == 1) {
+        else if (messageType == BridgeExpirationInfoMessageType) {
             (name, registrationVersion, ownerChangeVersion, expiration) = abi.decode(innerMessage, (uint256, uint64, uint64, uint256));
             registrarController.receiveExpirationInfo(name, registrationVersion, ownerChangeVersion, expiration);
+        }
+        else if (messageType == BridgeLocalOwnerMessageType) {
+            string memory targetLocalOwner;
+
+            (name, registrationVersion, ownerChangeVersion, expiration, targetLocalOwner) = abi.decode(innerMessage, (uint256, uint64, uint64, uint256, string));
+            registrarController.receiveLocalOwner(name, registrationVersion, ownerChangeVersion, expiration, targetLocalOwner.toAddress());
         }
         else {
             _handleMessageType(sourceChain, messageType, innerMessage);
@@ -100,7 +118,7 @@ abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, IN
     {
         if (!chainDefinitions[chainName].isValid) { revert UnsupportedOrInvalidChain(chainName); }
 
-        bytes memory payload = abi.encode(0, abi.encode(name, registrationVersion, ownerChangeVersion, expiration, targetOwner));
+        bytes memory payload = abi.encode(BridgeNameMessageType, abi.encode(name, registrationVersion, ownerChangeVersion, expiration, targetOwner));
 
         if(msg.value > 0) {
           // The line below is where we pay the gas fee
@@ -118,6 +136,8 @@ abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, IN
             chainDefinitions[chainName].targetBridgeAddress, 
             payload
         );
+
+        emit BridgeNameTo(name, chainName, expiration, targetOwner);
     }
 
     function bridgeExpirationInfoTo(string calldata chainName, uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion,
@@ -125,7 +145,7 @@ abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, IN
     {
         if (!chainDefinitions[chainName].isValid) { revert UnsupportedOrInvalidChain(chainName); }
 
-        bytes memory payload = abi.encode(1, abi.encode(name, registrationVersion, ownerChangeVersion, expiration));
+        bytes memory payload = abi.encode(BridgeExpirationInfoMessageType, abi.encode(name, registrationVersion, ownerChangeVersion, expiration));
 
         if(msg.value > 0) {
           // The line below is where we pay the gas fee
@@ -143,8 +163,38 @@ abstract contract BaseNameBridge is IAxelarExecutable, Ownable, Controllable, IN
             chainDefinitions[chainName].targetBridgeAddress, 
             payload
         );
+
+        emit BridgeExpirationInfoTo(name, chainName, expiration);
     }
     
+
+    function bridgeLocalOwnerTo(string calldata chainName, uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion,
+                                uint256 expiration, string calldata targetLocalOwner) external payable onlyController
+    {
+        if (!chainDefinitions[chainName].isValid) { revert UnsupportedOrInvalidChain(chainName); }
+
+        bytes memory payload = abi.encode(BridgeLocalOwnerMessageType, abi.encode(name, registrationVersion, ownerChangeVersion, expiration, targetLocalOwner));
+
+        if(msg.value > 0) {
+          // The line below is where we pay the gas fee
+          axelarGasService.payNativeGasForContractCall{value: msg.value}(
+              address(this),
+              chainName, 
+              chainDefinitions[chainName].targetBridgeAddress, 
+              payload,
+              msg.sender
+          );
+        }
+
+        axelarGateway.callContract(
+            chainName, 
+            chainDefinitions[chainName].targetBridgeAddress, 
+            payload
+        );
+
+        emit BridgeLocalOwnerTo(name, chainName, expiration, targetLocalOwner);
+    }
+
     /*******************\
     |* Admin Functions *|
     \*******************/

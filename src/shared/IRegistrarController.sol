@@ -14,4 +14,5 @@ interface IRegistrarController {
 
     function receiveName(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address owner) external;
     function receiveExpirationInfo(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration) external;
+    function receiveLocalOwner(uint256 name, uint64 registrationVersion, uint64 ownerChangeVersion, uint256 expiration, address localOwner) external;
 }
